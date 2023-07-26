@@ -102,7 +102,7 @@ class CadastroClientesApp:
             """
             self.cursor.execute(create_table_query)
 
-            self.cursor.execute("SELECT * FROM clientes")
+            self.cursor.execute("SELECT nome, endereco, contato, detalhes_contrato, valor_pago FROM clientes")
             rows = self.cursor.fetchall()
             for row in rows:
                 nome, endereco, contato, detalhes_contrato, valor_pago = row
