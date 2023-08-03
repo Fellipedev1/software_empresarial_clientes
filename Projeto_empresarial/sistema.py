@@ -110,6 +110,7 @@ class CadastroClientesApp:
                 self.clientes.append(cliente)
 
             self.atualizar_tabela()
+            self.calcular_faturamento()
 
         except mysql.connector.Error as e:
             messagebox.showerror("Erro de Conexão", f"Ocorreu um erro ao conectar ao banco de dados: {e}")
@@ -167,15 +168,6 @@ class CadastroClientesApp:
         if valor_pago is None:
             return
 
-        cliente = Cliente(nome, endereco, contato, detalhes_contrato, valor_pago)
-        self.clientes.append(cliente)
-
-        self.nome_entry.delete(0, tk.END)
-        self.endereco_entry.delete(0, tk.END)
-        self.contato_entry.delete(0, tk.END)
-        self.detalhes_contrato_entry.delete(0, tk.END)
-        self.valor_pago_entry.delete(0, tk.END)
-
         try:
             insert_query = "INSERT INTO clientes (nome, endereco, contato, detalhes_contrato, valor_pago) VALUES (%s, %s, %s, %s, %s)"
             values = (nome, endereco, contato, detalhes_contrato, valor_pago)
@@ -184,12 +176,16 @@ class CadastroClientesApp:
 
             self.cursor.execute("SELECT LAST_INSERT_ID()")
             last_id = self.cursor.fetchone()[0]
+            cliente = Cliente(nome, endereco, contato, detalhes_contrato, valor_pago)
             cliente.id = last_id
+            self.clientes.append(cliente)
 
         except mysql.connector.Error as e:
             messagebox.showerror("Erro de Inserção", f"Ocorreu um erro ao inserir os dados no banco de dados: {e}")
 
         self.atualizar_tabela()
+        self.calcular_faturamento()
+        self.limpar_campos()  # Clear the entry fields after successful registration
         self.nome_entry.focus_set()
 
     def atualizar_tabela(self, resultados=None):
@@ -203,9 +199,13 @@ class CadastroClientesApp:
             self.tree.insert("", "end", values=(cliente.nome, cliente.endereco, cliente.contato, cliente.detalhes_contrato, valor_formatado))
 
     def calcular_faturamento(self):
-        faturamento_total = sum(cliente.valor_pago for cliente in self.clientes)
-        valor_formatado = self.formatar_valor(faturamento_total)
-        self.faturamento_label.config(text=f"Valor Faturado: {valor_formatado}")
+        try:
+            self.cursor.execute("SELECT SUM(valor_pago) FROM clientes")
+            faturamento_total = self.cursor.fetchone()[0] or 0
+            valor_formatado = self.formatar_valor(faturamento_total)
+            self.faturamento_label.config(text=f"Valor Faturado: {valor_formatado}")
+        except mysql.connector.Error as e:
+            messagebox.showerror("Erro de Consulta", f"Ocorreu um erro ao consultar o banco de dados: {e}")
 
     def criar_interface_pesquisa(self):
         ttk.Label(self.frame, text="Pesquisar Cliente por Nome:").grid(row=10, column=0, padx=5, pady=5)
@@ -227,6 +227,13 @@ class CadastroClientesApp:
             return
 
         self.atualizar_tabela(resultados)
+
+    def limpar_campos(self):
+        self.nome_entry.delete(0, tk.END)
+        self.endereco_entry.delete(0, tk.END)
+        self.contato_entry.delete(0, tk.END)
+        self.detalhes_contrato_entry.delete(0, tk.END)
+        self.valor_pago_entry.delete(0, tk.END)
 
 if __name__ == "__main__":
     locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
