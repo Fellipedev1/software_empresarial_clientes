@@ -137,6 +137,18 @@ class CadastroClientesApp:
             self.aviso_detalhes.config(text="")
             return True
 
+    def validar_valor_pago(self, valor_pago):
+        try:
+            valor_formatado = locale.atof(valor_pago)
+            if valor_formatado < 0:
+                raise ValueError
+            return valor_formatado
+        except ValueError:
+            self.valor_pago_entry.delete(0, tk.END)
+            self.valor_pago_entry.insert(0, "0.00")
+            messagebox.showerror("Erro", "Digite um valor numérico válido para 'Valor Pago (R$)'.")
+            return None
+
     def cadastrar_cliente(self):
         nome = self.nome_entry.get()
         endereco = self.endereco_entry.get()
@@ -151,10 +163,8 @@ class CadastroClientesApp:
             messagebox.showerror("Erro", "Digite um valor para 'Valor Pago (R$)'.")
             return
 
-        try:
-            valor_pago = float(valor_pago)
-        except ValueError:
-            messagebox.showerror("Erro", "Digite um valor numérico para 'Valor Pago (R$)'.")
+        valor_pago = self.validar_valor_pago(valor_pago)
+        if valor_pago is None:
             return
 
         cliente = Cliente(nome, endereco, contato, detalhes_contrato, valor_pago)
